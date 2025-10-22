@@ -1,0 +1,246 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  fullname  String
+  username  String   @unique
+  avatar    String?
+  bio       String?
+  role      RoleUser @default(STANDARD)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  posts         Post[]
+  comments      Comment[]
+  replies       Reply[]
+  commentLikes  CommentLike[]
+  replyLikes    ReplyLike[]
+  authCodes     AuthCode[]
+  sessions      Session[]
+  constructions Construction[]
+
+  @@map("users")
+}
+
+enum RoleUser {
+  ADMIN @map("admin")
+  FREE @map("free")
+  STANDARD  @map("standard")
+  PREMIUM  @map("premium")
+  ENTERPRISE  @map("enterprise")
+}
+
+model AuthCode {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  email     String
+  userId    Int?
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Relacionamentos
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("auth_codes")
+}
+
+model Session {
+  id               Int      @id @default(autoincrement())
+  sessionId    String      @unique @db.VarChar(36)
+  userId           Int
+  accessTokenSign  String 
+  userAgent    String?
+  ipAddress    String?
+  refreshToken     String?
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Post {
+  id         Int        @id @default(autoincrement())
+  title      String
+  slug       String?    @unique
+  content    String
+  published  Boolean    @default(false)
+  author     User       @relation(fields: [authorId], references: [id])
+  authorId   Int
+  categories Category[] @relation("PostCategories")
+  comments   Comment[]
+  images     Image[]
+  tags       PostTag[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model Tag {
+  id    Int     @id @default(autoincrement())
+  name  String  @unique
+  slug  String  @unique
+  posts PostTag[]
+}
+
+model PostTag {
+  post    Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId  Int
+  tag     Tag  @relation(fields: [tagId], references: [id])
+  tagId   Int
+
+  @@id([postId, tagId])
+}
+
+enum MediaType {
+  image
+  video
+}
+
+model Image {
+  id     Int       @id @default(autoincrement())
+  url    String
+  alt    String?
+  type   MediaType
+  post   Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId Int
+}
+
+model Category {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  posts Post[] @relation("PostCategories")
+}
+
+model Comment {
+  id        Int       @id @default(autoincrement())
+  content   String
+  user      User      @relation(fields: [userId], references: [id])
+  userId    Int
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    Int
+  replies   Reply[]   @relation("CommentReplies")
+  likes     CommentLike[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Reply {
+  id        Int         @id @default(autoincrement())
+  content   String
+  user      User        @relation(fields: [userId], references: [id])
+  userId    Int
+  commentId Int
+  comment   Comment     @relation("CommentReplies", fields: [commentId], references: [id], onDelete: Cascade) 
+  likes     ReplyLike[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model CommentLike {
+  id        Int     @id @default(autoincrement())
+  user      User    @relation(fields: [userId], references: [id])
+  userId    Int
+  comment   Comment @relation(fields: [commentId], references: [id])
+  commentId Int
+  createdAt DateTime @default(now())
+
+  @@unique([userId, commentId])
+}
+
+model ReplyLike {
+  id        Int     @id @default(autoincrement())
+  user      User    @relation(fields: [userId], references: [id])
+  userId    Int
+  reply     Reply   @relation(fields: [replyId], references: [id])
+  replyId   Int
+  createdAt DateTime @default(now())
+
+  @@unique([userId, replyId])
+}
+
+model Construction {
+  id           Int       @id @default(autoincrement()) 
+  name         String
+  address      String
+  cep          String
+  city         String
+  district     String
+  userId       Int       
+  user         User      @relation(fields: [userId], references: [id])
+  teams        Team[]
+  stages       Stage[]
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Team {
+  id           Int       @id @default(autoincrement()) 
+  name         String    // Ex: Equipe de Arquitetos
+  construction Construction @relation(fields: [constructionId], references: [id])
+  constructionId Int       
+  professionals Professional[]
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Professional {
+  id           Int       @id @default(autoincrement()) 
+  name         String
+  role         Role
+  phone        String
+  email        String
+  team         Team      @relation(fields: [teamId], references: [id])
+  teamId       Int       
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+enum Role {
+  PROPRIETARIO
+  CONSTRUTOR
+  ARQ         // Arquiteto
+  ENG         // Engenheiro
+  MESTRE      // Mestre de obras
+  SUPERVISOR
+  OPERADOR
+  AUTONOMO
+}
+
+model Stage {
+  id           Int       @id @default(autoincrement()) 
+  name         String    // Ex: Estrutura, Instalações, etc.
+  progress     Float     @default(0.0) // Ex: 50%
+  constructionId Int       
+  construction Construction @relation(fields: [constructionId], references: [id])
+  substages    SubStage[]    // Subetapas editáveis
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model SubStage {
+  id           Int       @id @default(autoincrement()) 
+  name         String      // Ex: Hidráulica, Elétrica
+  progress     Float     @default(0.0) // Ex: 20%
+  stageId      Int       
+  stage        Stage      @relation(fields: [stageId], references: [id])
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}

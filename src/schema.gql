@@ -1,0 +1,506 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type UserDto {
+  id: Int!
+  email: String!
+  fullname: String!
+  username: String!
+  role: RoleUser!
+  avatar: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""Papéis disponíveis para o usuário"""
+enum RoleUser {
+  ADMIN
+  FREE
+  STANDARD
+  PREMIUM
+  ENTERPRISE
+}
+
+"""
+A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the `date-time` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
+"""
+scalar DateTime
+
+type AuthResult {
+  accessToken: String!
+  refreshToken: String!
+  csrfToken: String!
+  user: UserDto!
+  message: String
+}
+
+type Category {
+  id: Int!
+  name: String!
+  posts: [Post!]
+}
+
+type ReplyLike {
+  id: Int!
+  userId: Int!
+  replyId: Int!
+  user: User!
+  reply: Reply
+  createdAt: DateTime!
+}
+
+type Reply {
+  id: Int!
+  content: String!
+  userId: Int!
+  commentId: Int!
+  user: User!
+  likes: [ReplyLike!]!
+  likeCount: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Comment {
+  id: Int!
+  content: String!
+  user: User!
+  post: Post!
+  replies: [Reply!]!
+  likeCount: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Image {
+  id: Int!
+  url: String!
+  alt: String
+  type: String!
+  postId: Int!
+  post: Post
+}
+
+type Tag {
+  id: Int!
+  name: String!
+  slug: String!
+  posts: [Post!]
+}
+
+type Post {
+  id: Int!
+  title: String!
+  slug: String!
+  content: String!
+  published: Boolean!
+  authorId: Int!
+  author: User!
+  categories: [Category!]
+  comments: [Comment!]
+  images: [Image!]
+  tags: [Tag!]
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  getCategories: [Category!]!
+  getImages: [Image!]!
+}
+
+type User {
+  id: Int!
+  fullname: String!
+  username: String!
+  email: String!
+  avatar: String
+  bio: String
+  role: RoleUser!
+  isActive: Boolean!
+  posts: [Post!]
+  comments: [Comment!]
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type UserType {
+  id: Int!
+  email: String!
+  fullname: String!
+  username: String!
+  avatar: String
+  bio: String
+  role: RoleUser!
+  isActive: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type DeletePostDto {
+  id: Int!
+  message: String!
+}
+
+type TagWithPosts {
+  id: Int!
+  name: String!
+  slug: String!
+  posts: [Post!]!
+}
+
+type TagCount {
+  id: Int!
+  name: String!
+  slug: String!
+  posts: [Post!]
+  postCount: Int!
+}
+
+type CommentLike {
+  id: Int!
+  userId: Int!
+  commentId: Int!
+  user: User!
+  createdAt: DateTime!
+}
+
+type CommentType {
+  id: Int!
+  content: String!
+  userId: Int!
+  postId: Int!
+  user: User!
+  post: Post!
+  likes: [CommentLike!]!
+  replies: [Reply!]!
+  likeCount: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Professional {
+  id: Int!
+  name: String!
+  role: Role!
+  phone: String!
+  email: String!
+  team: Team
+  teamId: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""Papéis disponíveis para profissionais"""
+enum Role {
+  PROPRIETARIO
+  CONSTRUTOR
+  ARQ
+  ENG
+  MESTRE
+  SUPERVISOR
+  OPERADOR
+  AUTONOMO
+}
+
+type Team {
+  id: Int!
+  name: String!
+  constructionId: Int!
+  construction: Construction
+  professionals: [Professional!]
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type SubStage {
+  id: Int!
+  name: String!
+  progress: Float!
+  stageId: Float!
+  stage: Stage
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Stage {
+  id: Int!
+  name: String!
+  progress: Float!
+  constructionId: Float!
+  construction: Construction
+  substages: [SubStage!]
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Construction {
+  id: Int!
+  name: String!
+  address: String!
+  cep: String!
+  city: String!
+  district: String!
+  userId: Int!
+  user: User!
+  teams: [Team!]
+  stages: [Stage!]
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Query {
+  currentUser: User!
+  me: UserType!
+  users: [UserType!]!
+
+  """Lista todos os usuários, incluindo os inativos."""
+  listAllUsers: [UserType!]!
+
+  """Lista todos os usuários com isActive: true."""
+  findActiveUsers: [UserType!]!
+
+  """Lista apenas os usuários com isActive: false."""
+  findInactiveUsers: [UserType!]!
+  getPosts: [Post!]!
+  data(id: Int!): Post
+  findPostBySlug(slug: String!): Post
+  tags(skip: Int, take: Int, search: String): [Tag!]!
+  tag(id: Int!): Tag!
+  tagBySlug(slug: String!): Tag!
+  popularTags(limit: Int = 10): [TagCount!]!
+  getComments: [CommentType!]!
+  comment(id: Int!): CommentType!
+  CommentsByPost(postId: Int!): [CommentType!]!
+  getCategories: [Category!]!
+  category(id: Int!): Category!
+  replies: [Reply!]!
+  reply(id: Int!): Reply!
+  constructions: [Construction!]!
+  construction(id: ID!): Construction
+  teams: [Team!]!
+  team(id: Int!): Team!
+  professionals: [Professional!]!
+  professional(id: Int!): Professional!
+  stages: [Stage!]!
+  stage(id: ID!): Stage!
+  stagesByConstruction(constructionId: ID!): [Stage!]!
+  subStages: [SubStage!]!
+  subStagesByStage(stageId: ID!): [SubStage!]!
+  subStage(id: ID!): SubStage!
+}
+
+type Mutation {
+  sendAuthCode(input: SendAuthCodeDto!): String!
+  verifyAuthCode(code: String!, email: String!): AuthResult!
+  logout: Boolean!
+  createUser(input: CreateUserInput!): UserType!
+  updateProfile(data: UpdateUserInput!): UserType!
+  deactivateAccount: String!
+  createPost(data: CreatePostInput!): Post!
+  updatePost(id: Int!, data: UpdatePostInput!): Post!
+  removePost(id: Int!): DeletePostDto!
+  removeTag(id: Int!): Tag!
+  createComment(data: CreateCommentInput!): CommentType!
+  updateComment(id: Int!, data: UpdateCommentInput!): CommentType!
+  removeComment(id: Int!): CommentType!
+  createCategory(data: CreateCategoryInput!): Category!
+  updateCategory(id: Int!, data: UpdateCategoryInput!): Category!
+  removeCategory(id: Int!): Category!
+  createReply(data: CreateReplyInput!): Reply!
+  updateReply(updateReplyInput: UpdateReplyInput!): Reply!
+  removeReply(id: Int!): Reply!
+  likeComment(data: CreateCommentLikeInput!): CommentLike!
+  unlikeComment(data: DeleteCommentLikeInput!): CommentLike!
+  likeReply(data: CreateReplyLikeInput!): ReplyLike!
+  unlikeReply(replyId: Int!, userId: Int!): Boolean!
+  createConstruction(createConstructionInput: CreateConstructionInput!): Construction!
+  updateConstruction(id: ID!, updateConstructionInput: UpdateConstructionInput!): Construction!
+  removeConstruction(id: ID!): Construction!
+  createTeam(createTeamInput: CreateTeamInput!): Team!
+  updateTeam(updateTeamInput: UpdateTeamInput!): Team!
+  removeTeam(id: Int!): Team!
+  createProfessional(createProfessionalInput: CreateProfessionalInput!): Professional!
+  updateProfessional(updateProfessionalInput: UpdateProfessionalInput!): Professional!
+  removeProfessional(id: Int!): Professional!
+  createStage(createStageInput: CreateStageInput!): Stage!
+  updateStage(input: UpdateStageInput!): Stage!
+  deleteStage(id: ID!): Boolean!
+  createSubStage(input: CreateSubStageInput!): SubStage!
+  updateSubStage(input: UpdateSubStageInput!): SubStage!
+  deleteSubStage(id: ID!): Boolean!
+}
+
+input SendAuthCodeDto {
+  email: String!
+}
+
+input CreateUserInput {
+  email: String!
+  fullname: String!
+  username: String!
+  role: RoleUser!
+}
+
+input UpdateUserInput {
+  fullname: String
+  username: String
+  avatar: String
+  bio: String
+}
+
+input CreatePostInput {
+  title: String!
+  content: String!
+  published: Boolean! = false
+  authorId: Int!
+  categories: [Int!]
+  tags: [String!]
+  images: [CreateImageInput!]
+}
+
+input CreateImageInput {
+  url: String!
+  alt: String
+  type: MediaType!
+}
+
+enum MediaType {
+  image
+  video
+}
+
+input UpdatePostInput {
+  title: String
+  content: String
+  published: Boolean
+  authorId: Int!
+  tags: [String!]
+  categories: [Int!]
+  images: [UpdateImageInput!]
+}
+
+input UpdateImageInput {
+  url: String
+  alt: String
+  type: String
+}
+
+input CreateCommentInput {
+  content: String!
+  userId: Int!
+  postId: Int!
+}
+
+input UpdateCommentInput {
+  content: String
+  userId: Int
+  postId: Int
+}
+
+input CreateCategoryInput {
+  name: String!
+}
+
+input UpdateCategoryInput {
+  name: String
+}
+
+input CreateReplyInput {
+  content: String!
+  commentId: Int!
+  userId: Int!
+}
+
+input UpdateReplyInput {
+  content: String
+  commentId: Int
+  userId: Int
+  id: Int!
+}
+
+input CreateCommentLikeInput {
+  userId: Int!
+  commentId: Int!
+}
+
+input DeleteCommentLikeInput {
+  userId: Int!
+  commentId: Int!
+}
+
+input CreateReplyLikeInput {
+  replyId: Int!
+  userId: Int!
+}
+
+input CreateConstructionInput {
+  name: String!
+  address: String!
+  cep: String!
+  city: String!
+  district: String!
+  userId: Int!
+}
+
+input UpdateConstructionInput {
+  name: String
+  address: String
+  cep: String
+  city: String
+  district: String
+  userId: Int
+  id: Int!
+}
+
+input CreateTeamInput {
+  name: String!
+  constructionId: Int!
+}
+
+input UpdateTeamInput {
+  id: Int!
+  name: String
+  constructionId: Int
+}
+
+input CreateProfessionalInput {
+  name: String!
+  role: Role!
+  phone: String!
+  email: String!
+  teamId: Int!
+}
+
+input UpdateProfessionalInput {
+  name: String
+  role: Role
+  phone: String
+  email: String
+  teamId: Int
+  id: Int!
+}
+
+input CreateStageInput {
+  name: String!
+  progress: Float = 0
+  constructionId: Float!
+}
+
+input UpdateStageInput {
+  name: String
+  progress: Float
+  constructionId: Float
+  id: ID!
+}
+
+input CreateSubStageInput {
+  name: String!
+  progress: Float = 0
+  stageId: Int!
+}
+
+input UpdateSubStageInput {
+  name: String
+  progress: Float
+  stageId: Int
+  id: Int!
+}
