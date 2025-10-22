@@ -29,7 +29,7 @@ async function bootstrap() {
   */
 
   // Inicia a aplicação NestJS
-  const port = process.env.PORT || 3001;
+  const port = process.env.PORT || 8001;
   await app.listen(port);
   console.log(`Application is running on: ${await app.getUrl()}`);
 }

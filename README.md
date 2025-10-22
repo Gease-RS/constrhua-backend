@@ -76,7 +76,44 @@ mutation CreateNewUser {
     fullname
     username
     role
-    createdAt # Exemplo de campo de retorno
+    createdAt 
+  }
+}
+
+# 2. Listar todos usuário
+query ListAllUsers {
+  listAllUsers {
+    id
+    fullname
+    username
+    email
+    role
+    isActive # Campo importante para diferenciar o status
+    createdAt
+    updatedAt
+  }
+}
+
+# 3. Listar usuários 
+query FindActiveUsers {
+  findActiveUsers {
+    id
+    fullname
+    username
+    role
+    createdAt
+  }
+}
+
+# 4. Listar usuários inativos
+query FindInactiveUsers {
+  findInactiveUsers {
+    id
+    fullname
+    username
+    email
+    isActive
+    role
   }
 }
 
