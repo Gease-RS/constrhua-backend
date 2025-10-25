@@ -20,9 +20,10 @@ import { ConstructionModule } from './construction/construction.module';
 import { TeamModule } from './team/team.module';
 import { ProfessionalModule } from './professional/professional.module';
 import { StageModule } from './stage/stage.module';
-import { SubStageModule } from './substage/substage.module';
 import { UploadModule } from './upload/upload.module';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { PhaseModule } from './phase/phase.module';
+import { TaskModule } from './task/task.module';
 
 @Module({
   imports: [
@@ -70,7 +71,8 @@ import { ThrottlerModule } from '@nestjs/throttler';
     TeamModule,
     ProfessionalModule,
     StageModule,
-    SubStageModule
+    PhaseModule,
+    TaskModule
   ],
 })
 export class AppModule {}

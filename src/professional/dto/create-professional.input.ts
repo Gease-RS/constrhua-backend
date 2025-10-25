@@ -1,5 +1,5 @@
 import { InputType, Field, Int } from '@nestjs/graphql';
-import { Role } from '@prisma/client';
+import { RoleProfessional } from '@prisma/client';
 import { IsString, IsNotEmpty, IsInt, IsEmail, IsEnum } from 'class-validator';
 
 @InputType()
@@ -9,9 +9,9 @@ export class CreateProfessionalInput {
   @IsNotEmpty({ message: 'O nome do profissional não pode ser vazio.' })
   name: string;
 
-  @Field(() => Role)
-  @IsEnum(Role, { message: 'Role inválida.' })
-  role: Role;
+  @Field(() => RoleProfessional )
+  @IsEnum(RoleProfessional , { message: 'Role inválida.' })
+  role : RoleProfessional ;
 
   @Field()
   @IsString()

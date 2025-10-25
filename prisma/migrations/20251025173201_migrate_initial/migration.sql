@@ -5,7 +5,10 @@ CREATE TYPE "RoleUser" AS ENUM ('admin', 'free', 'standard', 'premium', 'enterpr
 CREATE TYPE "MediaType" AS ENUM ('image', 'video');
 
 -- CreateEnum
-CREATE TYPE "Role" AS ENUM ('PROPRIETARIO', 'CONSTRUTOR', 'ARQ', 'ENG', 'MESTRE', 'SUPERVISOR', 'OPERADOR', 'AUTONOMO');
+CREATE TYPE "RoleProfessional" AS ENUM ('owner', 'builder', 'architect', 'engineer', 'foreman', 'supervisor', 'operator', 'freelancer');
+
+-- CreateEnum
+CREATE TYPE "TaskStatus" AS ENUM ('not_started', 'in_progress', 'completed');
 
 -- CreateTable
 CREATE TABLE "users" (
@@ -154,6 +157,7 @@ CREATE TABLE "Construction" (
     "cep" TEXT NOT NULL,
     "city" TEXT NOT NULL,
     "district" TEXT NOT NULL,
+    "progress" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
     "userId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -176,7 +180,7 @@ CREATE TABLE "Team" (
 CREATE TABLE "Professional" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
-    "role" "Role" NOT NULL,
+    "role" "RoleProfessional" NOT NULL,
     "phone" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "teamId" INTEGER NOT NULL,
@@ -187,7 +191,7 @@ CREATE TABLE "Professional" (
 );
 
 -- CreateTable
-CREATE TABLE "Stage" (
+CREATE TABLE "phases" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "progress" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
@@ -195,19 +199,35 @@ CREATE TABLE "Stage" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "Stage_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "phases_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "SubStage" (
+CREATE TABLE "stages" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "progress" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
-    "stageId" INTEGER NOT NULL,
+    "isSkipped" BOOLEAN NOT NULL DEFAULT false,
+    "phaseId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "SubStage_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "stages_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Task" (
+    "id" SERIAL NOT NULL,
+    "name" TEXT NOT NULL,
+    "status" "TaskStatus" NOT NULL DEFAULT 'not_started',
+    "budgetedCost" DOUBLE PRECISION NOT NULL,
+    "stageId" INTEGER NOT NULL,
+    "startDate" TIMESTAMP(3),
+    "endDate" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Task_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -303,10 +323,13 @@ ALTER TABLE "Team" ADD CONSTRAINT "Team_constructionId_fkey" FOREIGN KEY ("const
 ALTER TABLE "Professional" ADD CONSTRAINT "Professional_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Stage" ADD CONSTRAINT "Stage_constructionId_fkey" FOREIGN KEY ("constructionId") REFERENCES "Construction"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "phases" ADD CONSTRAINT "phases_constructionId_fkey" FOREIGN KEY ("constructionId") REFERENCES "Construction"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "SubStage" ADD CONSTRAINT "SubStage_stageId_fkey" FOREIGN KEY ("stageId") REFERENCES "Stage"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "stages" ADD CONSTRAINT "stages_phaseId_fkey" FOREIGN KEY ("phaseId") REFERENCES "phases"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Task" ADD CONSTRAINT "Task_stageId_fkey" FOREIGN KEY ("stageId") REFERENCES "stages"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "_PostCategories" ADD CONSTRAINT "_PostCategories_A_fkey" FOREIGN KEY ("A") REFERENCES "Category"("id") ON DELETE CASCADE ON UPDATE CASCADE;

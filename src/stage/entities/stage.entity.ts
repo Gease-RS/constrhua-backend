@@ -1,27 +1,30 @@
 import { Field, ObjectType, Float, Int } from '@nestjs/graphql';
 import { GraphQLDateTime } from 'graphql-scalars';
-import { Construction } from 'src/construction/entities/construction.entity';
-import { SubStage } from 'src/substage/entities/substage.entity'; // Verifique o caminho real da sua entidade SubStage
+import { Phase } from 'src/phase/entities/phase.entity'; 
+import { Task } from 'src/task/entities/task.entity'; // Importa a nova entidade Task
 
 @ObjectType()
-export class Stage {
-  @Field(() => Int) // ID no GraphQL pode ser String ou Int, mas o tipo TypeScript será number
-  id: number; // Agora é 'number' para corresponder ao 'Int' do Prisma
+export class Stage { // Renomeada de 'SubStage' para 'Stage'
+  @Field(() => Int)
+  id: number;
 
   @Field()
-  name: string;
+  name: string; // Ex: "Escolha do Terreno", "Fundação"
 
-  @Field(() => Float) // Use Float para números decimais
-  progress: number; // 'Float' no Prisma mapeia para 'number' no TypeScript
+  @Field(() => Float)
+  progress: number; // Progresso da Stage, calculado a partir das Tasks filhas
 
-  @Field(() => Number) // O ID da construção é um número inteiro
-  constructionId: number;
+  @Field(() => Int) 
+  phaseId: number; // Relação com o novo Phase
 
-  @Field(() => Construction, { nullable: true }) // Relacionamento com a entidade Construction
-  construction?: Construction;
+  @Field(() => Phase, { nullable: true })
+  phase?: Phase;
 
-  @Field(() => [SubStage], { nullable: true }) // Relacionamento com a entidade SubStage
-  substages?: SubStage[]; // Pode ser nulo se não houver subetapas
+  @Field()
+  isSkipped: boolean; // Permite pular esta etapa se o cliente já a completou (ex: já tem o terreno)
+
+  @Field(() => [Task], { nullable: true }) // Relação com o nível mais baixo: Tarefas
+  tasks?: Task[];
 
   @Field(() => GraphQLDateTime)
   createdAt: Date;
@@ -29,5 +32,3 @@ export class Stage {
   @Field(() => GraphQLDateTime)
   updatedAt: Date;
 }
-
-

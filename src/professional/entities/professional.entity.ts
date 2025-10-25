@@ -1,10 +1,10 @@
 import { ObjectType, Field, Int, registerEnumType } from '@nestjs/graphql';
-import { Role } from '@prisma/client';
+import { RoleProfessional  } from '@prisma/client';
 import { Team } from '../../team/entities/team.entity'; 
 import { GraphQLDateTime } from 'graphql-scalars';
 
-registerEnumType(Role, {
-  name: 'Role',
+registerEnumType(RoleProfessional , {
+  name: 'RoleProfressional',
   description: 'Papéis disponíveis para profissionais',
 });
 
@@ -17,8 +17,8 @@ export class Professional {
   @Field()
   name: string;
 
-  @Field(() => Role)
-  role: Role;
+  @Field(() => RoleProfessional )
+  role: RoleProfessional ;
 
   @Field()
   phone: string;

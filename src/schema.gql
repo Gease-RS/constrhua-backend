@@ -180,7 +180,7 @@ type CommentType {
 type Professional {
   id: Int!
   name: String!
-  role: Role!
+  role: RoleProfressional!
   phone: String!
   email: String!
   team: Team
@@ -190,15 +190,15 @@ type Professional {
 }
 
 """Papéis disponíveis para profissionais"""
-enum Role {
-  PROPRIETARIO
-  CONSTRUTOR
-  ARQ
-  ENG
-  MESTRE
+enum RoleProfressional {
+  OWNER
+  BUILDER
+  ARCHITECT
+  ENGINEER
+  FOREMAN
   SUPERVISOR
-  OPERADOR
-  AUTONOMO
+  OPERATOR
+  FREELANCER
 }
 
 type Team {
@@ -211,23 +211,44 @@ type Team {
   updatedAt: DateTime!
 }
 
-type SubStage {
+type Task {
   id: Int!
   name: String!
-  progress: Float!
-  stageId: Float!
+  status: TaskStatus!
+  budgetedCost: Float!
+  stageId: Int!
   stage: Stage
+  startDate: DateTime
+  endDate: DateTime
   createdAt: DateTime!
   updatedAt: DateTime!
+}
+
+enum TaskStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
 }
 
 type Stage {
   id: Int!
   name: String!
   progress: Float!
-  constructionId: Float!
+  phaseId: Int!
+  phase: Phase
+  isSkipped: Boolean!
+  tasks: [Task!]
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Phase {
+  id: Int!
+  name: String!
+  progress: Float!
+  constructionId: Int!
   construction: Construction
-  substages: [SubStage!]
+  stages: [Stage!]
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -239,10 +260,15 @@ type Construction {
   cep: String!
   city: String!
   district: String!
+
+  """
+  Progresso total da construção, calculado pela média ponderada das Phases.
+  """
+  progress: Float!
   userId: Int!
   user: User!
   teams: [Team!]
-  stages: [Stage!]
+  phases: [Phase!]
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -274,18 +300,43 @@ type Query {
   category(id: Int!): Category!
   replies: [Reply!]!
   reply(id: Int!): Reply!
+
+  """Retorna todas as construções com a hierarquia de progresso completa."""
   constructions: [Construction!]!
-  construction(id: ID!): Construction
+
+  """Retorna uma construção pelo seu ID, incluindo Phases, Stages e Tasks."""
+  construction(id: Int!): Construction!
   teams: [Team!]!
   team(id: Int!): Team!
   professionals: [Professional!]!
   professional(id: Int!): Professional!
-  stages: [Stage!]!
-  stage(id: ID!): Stage!
-  stagesByConstruction(constructionId: ID!): [Stage!]!
-  subStages: [SubStage!]!
-  subStagesByStage(stageId: ID!): [SubStage!]!
-  subStage(id: ID!): SubStage!
+
+  """Retorna uma etapa pelo seu ID, incluindo as tarefas filhas."""
+  stage(id: Int!): Stage!
+
+  """Retorna todas as etapas de uma fase específica."""
+  stagesByPhase(
+    """ID da Fase (Phase) para filtrar as etapas."""
+    phaseId: Int!
+  ): [Stage!]!
+
+  """Retorna uma tarefa pelo seu ID."""
+  task(id: Int!): Task!
+
+  """Retorna todas as tarefas de uma etapa (Stage) específica."""
+  tasksByStage(
+    """ID da Etapa (Stage) para filtrar as tarefas."""
+    stageId: Int!
+  ): [Task!]!
+
+  """Retorna todas as fases de uma construção específica."""
+  phases(
+    """ID da construção para filtrar as fases."""
+    constructionId: Int!
+  ): [Phase!]!
+
+  """Retorna uma fase pelo seu ID, incluindo etapas e tarefas."""
+  phase(id: Int!): Phase!
 }
 
 type Mutation {
@@ -312,21 +363,65 @@ type Mutation {
   unlikeComment(data: DeleteCommentLikeInput!): CommentLike!
   likeReply(data: CreateReplyLikeInput!): ReplyLike!
   unlikeReply(replyId: Int!, userId: Int!): Boolean!
+
+  """Cria uma nova construção e a inicializa com progresso 0.0."""
   createConstruction(createConstructionInput: CreateConstructionInput!): Construction!
-  updateConstruction(id: ID!, updateConstructionInput: UpdateConstructionInput!): Construction!
-  removeConstruction(id: ID!): Construction!
+
+  """Atualiza os dados básicos de uma construção."""
+  updateConstruction(id: Int!, updateConstructionInput: UpdateConstructionInput!): Construction!
+
+  """
+  Recalcula o progresso total da construção baseado no estado atual de todas as Tasks.
+  """
+  recalculateConstructionProgress(constructionId: Int!): Construction!
+
+  """
+  Remove uma construção e todos os seus dados associados (Phases, Stages, Tasks).
+  """
+  removeConstruction(id: Int!): Construction!
   createTeam(createTeamInput: CreateTeamInput!): Team!
   updateTeam(updateTeamInput: UpdateTeamInput!): Team!
   removeTeam(id: Int!): Team!
   createProfessional(createProfessionalInput: CreateProfessionalInput!): Professional!
   updateProfessional(updateProfessionalInput: UpdateProfessionalInput!): Professional!
   removeProfessional(id: Int!): Professional!
+
+  """Cria uma nova etapa dentro de uma fase específica."""
   createStage(createStageInput: CreateStageInput!): Stage!
-  updateStage(input: UpdateStageInput!): Stage!
-  deleteStage(id: ID!): Boolean!
-  createSubStage(input: CreateSubStageInput!): SubStage!
-  updateSubStage(input: UpdateSubStageInput!): SubStage!
-  deleteSubStage(id: ID!): Boolean!
+
+  """Atualiza o nome ou se a etapa deve ser pulada."""
+  updateStage(id: Int!, updateStageInput: UpdateStageInput!): Stage!
+
+  """
+  Remove uma etapa e todas as tarefas (Tasks) filhas. (Exige exclusão em cascata configurada no Prisma).
+  """
+  removeStage(id: Int!): Boolean!
+
+  """
+  Recalcula e atualiza o campo de progresso da etapa com base nas Tasks filhas.
+  """
+  recalculateStageProgress(stageId: Int!): Stage!
+  createTask(createTaskInput: CreateTaskInput!): Task!
+  completeTask(id: Int!): Task!
+
+  """
+  Atualiza detalhes da tarefa, como nome, custo orçado (budgetedCost) ou status.
+  """
+  updateTask(id: Int!, updateTaskInput: UpdateTaskInput!): Task!
+
+  """Remove uma tarefa e dispara o recálculo de progresso na Stage pai."""
+  removeTask(id: Int!): Boolean!
+
+  """
+  Cria uma nova fase na construção. Pode copiar a estrutura de um modelo base.
+  """
+  createPhase(createPhaseInput: CreatePhaseInput!): Phase!
+
+  """Atualiza o nome de uma fase existente."""
+  updatePhase(id: Int!, updatePhaseInput: UpdatePhaseInput!): Phase!
+
+  """Remove uma fase e todas as etapas e tarefas relacionadas."""
+  removePhase(id: Int!): Boolean!
 }
 
 input SendAuthCodeDto {
@@ -438,6 +533,8 @@ input CreateConstructionInput {
   cep: String!
   city: String!
   district: String!
+
+  """ID do usuário responsável pela obra."""
   userId: Int!
 }
 
@@ -447,6 +544,8 @@ input UpdateConstructionInput {
   cep: String
   city: String
   district: String
+
+  """ID do usuário responsável pela obra."""
   userId: Int
   id: Int!
 }
@@ -464,7 +563,7 @@ input UpdateTeamInput {
 
 input CreateProfessionalInput {
   name: String!
-  role: Role!
+  role: RoleProfressional!
   phone: String!
   email: String!
   teamId: Int!
@@ -472,7 +571,7 @@ input CreateProfessionalInput {
 
 input UpdateProfessionalInput {
   name: String
-  role: Role
+  role: RoleProfressional
   phone: String
   email: String
   teamId: Int
@@ -481,26 +580,58 @@ input UpdateProfessionalInput {
 
 input CreateStageInput {
   name: String!
-  progress: Float = 0
-  constructionId: Float!
+
+  """ID da fase à qual esta etapa pertence."""
+  phaseId: Int!
 }
 
 input UpdateStageInput {
   name: String
-  progress: Float
-  constructionId: Float
+
+  """ID da fase à qual esta etapa pertence."""
+  phaseId: Int
   id: ID!
-}
-
-input CreateSubStageInput {
-  name: String!
-  progress: Float = 0
-  stageId: Int!
-}
-
-input UpdateSubStageInput {
-  name: String
   progress: Float
+}
+
+input CreateTaskInput {
+  name: String!
+
+  """ID da etapa à qual esta tarefa pertence."""
+  stageId: Int!
+
+  """Custo orçado desta tarefa. Usado para ponderar o progresso geral."""
+  budgetedCost: Float!
+
+  """Status inicial da tarefa. Padrão: NÃO_INICIADO."""
+  status: TaskStatus = NOT_STARTED
+}
+
+input UpdateTaskInput {
+  name: String
+
+  """ID da etapa à qual esta tarefa pertence."""
   stageId: Int
+
+  """Custo orçado desta tarefa. Usado para ponderar o progresso geral."""
+  budgetedCost: Float
+
+  """Status inicial da tarefa. Padrão: NÃO_INICIADO."""
+  status: TaskStatus = NOT_STARTED
+  id: Int!
+}
+
+input CreatePhaseInput {
+  name: String!
+
+  """ID da construção à qual esta fase pertence."""
+  constructionId: Int!
+}
+
+input UpdatePhaseInput {
+  name: String
+
+  """ID da construção à qual esta fase pertence."""
+  constructionId: Int
   id: Int!
 }

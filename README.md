@@ -117,14 +117,14 @@ query FindInactiveUsers {
   }
 }
 
-# 2. Solicitar código de autenticação
+# 5. Solicitar código de autenticação
 mutation SendAuthCode {
   sendAuthCode(input: {
     email: "user@example.com"
   })
 }
 
-# 3. Verificar código e fazer login
+# 6. Verificar código e fazer login
 mutation VerifyAuthCode {
   verifyAuthCode(input: {
     code: "codigo-recebido-por-email"
@@ -139,7 +139,7 @@ mutation VerifyAuthCode {
   }
 }
 
-# 4. Verificar usuário atual
+# 7. Verificar usuário atual
 query Me {
   me {
     id
@@ -151,9 +151,143 @@ query Me {
   }
 }
 
-# 5. Logout
+# 8. Logout
 mutation Logout {
   logout
+}
+
+# 9. Criar Construção
+mutation CreateConstruction {
+  createConstruction(createConstructionInput: {
+    name: "Projeto Casa Moderna I",
+    address: "Rua das Palmeiras, 123",
+    cep: "12345-678",
+    city: "São Paulo",
+    district: "Jardim América",
+    userId: 1 # ID do usuário responsável
+  }) {
+    id
+    name
+    progress # Deve retornar 0.0
+  }
+}
+
+# 10. Criar Fase
+mutation CreatePhase {
+  createPhase(createPhaseInput: {
+    name: "Fase 1: Projeto e Fundações",
+    constructionId: 1 # Use o ID da construção criada acima
+  }) {
+    id
+    name
+    progress
+    constructionId
+  }
+}
+
+# 11. Criar Stage
+mutation CreateStage {
+  createStage(createStageInput: {
+    name: "Alvenaria e Estrutura",
+    phaseId: 1 # Use o ID da fase criada acima
+  }) {
+    id
+    name
+    progress
+    phaseId
+  }
+}
+
+# 12. Criar Tarefa
+mutation CreateTasks {
+  # Tarefa 1: Maior Custo/Peso
+  task1: createTask(createTaskInput: {
+    name: "Montagem do telhado",
+    stageId: 1, # ID da Stage
+    budgetedCost: 50000.00, # 50% do custo total da Stage (se a Task 2 for 50k)
+    status: NOT_STARTED
+  }) {
+    id
+    name
+    budgetedCost
+    status
+  }
+
+  # Tarefa 2: Menor Custo/Peso
+  task2: createTask(createTaskInput: {
+    name: "Instalação Elétrica (Geral)",
+    stageId: 1,
+    budgetedCost: 50000.00,
+    status: NOT_STARTED
+  }) {
+    id
+    name
+    budgetedCost
+    status
+  }
+}
+
+# 13. Mudar status para completo
+mutation CompleteTaskAndRecalculate {
+  completeTask(id: 1) { # Use o ID da Task 1 criada acima
+    id
+    name
+    status
+  }
+  
+  # O Service deve automaticamente chamar o recálculo da Stage,
+  # mas você pode chamar o recálculo manual para verificar:
+  recalculateStageProgress(stageId: 1) {
+    id
+    progress # Deve retornar 50.0 (se as tarefas 1 e 2 tiverem o mesmo custo)
+  }
+}
+
+# Minhas Construções
+query MinhasConstrucoesComProgresso {
+  constructions {
+    id
+    name
+    address
+    progress # Progresso geral da construção (0.0 a 100.0)
+    
+    # 1. Dados do Usuário
+    user {
+      id
+      username
+      fullname
+    }
+    
+    # 2. Fases (Phases)
+    phases {
+      id
+      name
+      progress # Progresso da fase
+      
+      # 3. Etapas (Stages)
+      stages {
+        id
+        name
+        progress # Progresso da etapa
+        
+        # 4. Tarefas (Tasks)
+        tasks {
+          id
+          name
+          budgetedCost
+          status
+          startDate
+          endDate
+        }
+      }
+    }
+    
+    # 5. Equipes (Teams)
+    teams {
+      id
+      name
+    }
+  }
 }
 
 # Exemplo de teste com curl
@@ -184,7 +318,7 @@ curl -X POST http://localhost:3001/graphql \
 */
 
 docker run -d --name constrhua-app \
-  -e POSTGRES_DB=cotdb \
+  -e POSTGRES_DB=constdb \
   -e POSTGRES_USER=gease \
   -e POSTGRES_PASSWORD=2365acb77492acf365cbd49cd7a75cb94cd1f088 \
   -p 54440:5432 \

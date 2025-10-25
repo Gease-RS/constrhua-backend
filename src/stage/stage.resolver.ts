@@ -1,43 +1,60 @@
-import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, Int, Float } from '@nestjs/graphql';
 import { StageService } from './stage.service';
 import { Stage } from './entities/stage.entity';
 import { CreateStageInput } from './dto/create-stage.input';
 import { UpdateStageInput } from './dto/update-stage.input';
+import { NotFoundException } from '@nestjs/common';
 
 @Resolver(() => Stage)
 export class StageResolver {
   constructor(private readonly stageService: StageService) {}
 
-  @Query(() => [Stage], { name: 'stages' })
-  async findAll() {
-    return this.stageService.findAll();
+  // =========================================================================
+  // MUTATIONS (Operações de Escrita)
+  // =========================================================================
+
+  @Mutation(() => Stage, { description: 'Cria uma nova etapa dentro de uma fase específica.' })
+  createStage(
+    @Args('createStageInput') createStageInput: CreateStageInput
+  ): Promise<Stage> {
+    return this.stageService.create(createStageInput);
   }
 
-  @Query(() => Stage, { name: 'stage' })
-  async findOne(@Args('id', { type: () => ID }) id: number) {
-    return this.stageService.findOne(id);
+  @Mutation(() => Stage, { description: 'Atualiza o nome ou se a etapa deve ser pulada.' })
+  async updateStage(
+    @Args('id', { type: () => Int }) id: number,
+    @Args('updateStageInput') updateStageInput: UpdateStageInput
+  ): Promise<Stage> {
+    return this.stageService.update(id, updateStageInput);
   }
 
-  @Mutation(() => Stage)
-async createStage(@Args('createStageInput') input: CreateStageInput) {
-  return this.stageService.create(input);
-}
-
-  @Mutation(() => Stage)
-  async updateStage(@Args('input') input: UpdateStageInput) {
-    return this.stageService.update(input.id, input);
-  }
-
-  @Mutation(() => Boolean)
-  async deleteStage(@Args('id', { type: () => ID }) id: number) {
+  @Mutation(() => Boolean, { description: 'Remove uma etapa e todas as tarefas (Tasks) filhas. (Exige exclusão em cascata configurada no Prisma).' })
+  async removeStage(@Args('id', { type: () => Int }) id: number): Promise<boolean> {
     return this.stageService.remove(id);
   }
+  
+  // Exemplo de mutation para recalcular o progresso da Stage.
+  // Na prática, isso seria disparado após a conclusão/atualização de uma Task.
+  @Mutation(() => Stage, { description: 'Recalcula e atualiza o campo de progresso da etapa com base nas Tasks filhas.' })
+  async recalculateStageProgress(
+    @Args('stageId', { type: () => Int }) stageId: number
+  ): Promise<Stage> {
+    return this.stageService.updateStageProgress(stageId);
+  }
 
-  // Você pode adicionar queries/mutations adicionais conforme necessário
-  // Por exemplo, para buscar stages por constructionId:
+  // =========================================================================
+  // QUERIES (Operações de Leitura)
+  // =========================================================================
 
-  @Query(() => [Stage], { name: 'stagesByConstruction' })
-  async findByConstruction(@Args('constructionId', { type: () => ID }) constructionId: number) {
-    return this.stageService.findByConstruction(constructionId);
+  @Query(() => Stage, { name: 'stage', description: 'Retorna uma etapa pelo seu ID, incluindo as tarefas filhas.' })
+  findOne(@Args('id', { type: () => Int }) id: number): Promise<Stage> {
+    return this.stageService.findOne(id);
+  }
+  
+  @Query(() => [Stage], { name: 'stagesByPhase', description: 'Retorna todas as etapas de uma fase específica.' })
+  findAllByPhase(
+    @Args('phaseId', { type: () => Int, description: 'ID da Fase (Phase) para filtrar as etapas.' }) phaseId: number,
+  ): Promise<Stage[]> {
+    return this.stageService.findAllByPhase(phaseId);
   }
 }

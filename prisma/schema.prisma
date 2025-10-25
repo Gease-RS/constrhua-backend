@@ -7,6 +7,36 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum RoleUser {
+  ADMIN @map("admin")
+  FREE @map("free")
+  STANDARD  @map("standard")
+  PREMIUM  @map("premium")
+  ENTERPRISE  @map("enterprise")
+}
+
+enum MediaType {
+  image
+  video
+}
+
+enum RoleProfessional {
+  OWNER @map("owner")           // Proprietário
+  BUILDER @map("builder")       // Construtor
+  ARCHITECT @map("architect")   // Arquiteto
+  ENGINEER @map("engineer")     // Engenheiro
+  FOREMAN @map("foreman")       // Mestre de obras
+  SUPERVISOR @map("supervisor") // Supervisor
+  OPERATOR @map("operator")     // Operador
+  FREELANCER @map("freelancer") // Autônomo
+}
+
+enum TaskStatus {
+  NOT_STARTED @map("not_started")
+  IN_PROGRESS @map("in_progress")
+  COMPLETED @map("completed")
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
@@ -30,14 +60,6 @@ model User {
   constructions Construction[]
 
   @@map("users")
-}
-
-enum RoleUser {
-  ADMIN @map("admin")
-  FREE @map("free")
-  STANDARD  @map("standard")
-  PREMIUM  @map("premium")
-  ENTERPRISE  @map("enterprise")
 }
 
 model AuthCode {
@@ -104,11 +126,6 @@ model PostTag {
   @@id([postId, tagId])
 }
 
-enum MediaType {
-  image
-  video
-}
-
 model Image {
   id     Int       @id @default(autoincrement())
   url    String
@@ -172,19 +189,26 @@ model ReplyLike {
 }
 
 model Construction {
-  id           Int       @id @default(autoincrement()) 
-  name         String
-  address      String
-  cep          String
-  city         String
-  district     String
-  userId       Int       
-  user         User      @relation(fields: [userId], references: [id])
-  teams        Team[]
-  stages       Stage[]
+  id            Int       @id @default(autoincrement())  
+  name          String
+  address       String
+  cep           String
+  city          String
+  district      String
+  
+  // Progresso Calculado
+  progress      Float     @default(0.0) // Progresso Geral da Construção
 
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  userId        Int        
+  user          User      @relation(fields: [userId], references: [id])
+  
+  teams         Team[]
+  
+  // Relacionamento com o novo nível "Phase"
+  phases        Phase[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model Team {
@@ -201,7 +225,7 @@ model Team {
 model Professional {
   id           Int       @id @default(autoincrement()) 
   name         String
-  role         Role
+  role         RoleProfessional
   phone        String
   email        String
   team         Team      @relation(fields: [teamId], references: [id])
@@ -211,36 +235,55 @@ model Professional {
   updatedAt    DateTime  @updatedAt
 }
 
-enum Role {
-  PROPRIETARIO
-  CONSTRUTOR
-  ARQ         // Arquiteto
-  ENG         // Engenheiro
-  MESTRE      // Mestre de obras
-  SUPERVISOR
-  OPERADOR
-  AUTONOMO
+// Renomeado de "Stage" para "Phase" (Fase) - Nível 1
+model Phase {
+  id             Int        @id @default(autoincrement())  
+  name           String     // Ex: Planejamento, Infraestrutura, Acabamento
+  progress       Float      @default(0.0) // Progresso Calculado da Fase
+  
+  constructionId Int          
+  construction   Construction @relation(fields: [constructionId], references: [id])
+  
+  // Relacionamento com o novo nível "Stage" (Etapa)
+  stages         Stage[]      
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("phases")
 }
 
+// Renomeado de "SubStage" para "Stage" (Etapa) - Nível 2
 model Stage {
-  id           Int       @id @default(autoincrement()) 
-  name         String    // Ex: Estrutura, Instalações, etc.
-  progress     Float     @default(0.0) // Ex: 50%
-  constructionId Int       
-  construction Construction @relation(fields: [constructionId], references: [id])
-  substages    SubStage[]    // Subetapas editáveis
+  id             Int        @id @default(autoincrement())  
+  name           String     // Ex: Escolha do Terreno, Fundação, Alvenaria
+  progress       Float      @default(0.0) // Progresso Calculado da Etapa
+  isSkipped      Boolean    @default(false) // Permite que o cliente pule a etapa.
+  
+  phaseId        Int          
+  phase          Phase      @relation(fields: [phaseId], references: [id])
+  
+  // Relacionamento com o novo nível "Task" (Tarefa)
+  tasks          Task[]      
 
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("stages")
 }
 
-model SubStage {
-  id           Int       @id @default(autoincrement()) 
-  name         String      // Ex: Hidráulica, Elétrica
-  progress     Float     @default(0.0) // Ex: 20%
-  stageId      Int       
-  stage        Stage      @relation(fields: [stageId], references: [id])
+// "Task" (Etapa) - Nível 3
+model Task {
+  id         Int        @id @default(autoincrement())
+  name       String
+  status     TaskStatus @default(NOT_STARTED)
+  budgetedCost  Float      // Ex: 10000.00 (R$ 10.000,00)
 
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  stageId    Int
+  stage      Stage      @relation(fields: [stageId], references: [id])
+  startDate  DateTime?
+  endDate    DateTime?
+  
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
 }

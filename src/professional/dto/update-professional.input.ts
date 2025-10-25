@@ -1,7 +1,7 @@
 import { InputType, Field, Int, PartialType } from '@nestjs/graphql';
 import { CreateProfessionalInput } from './create-professional.input';
 import { IsInt, IsNotEmpty } from 'class-validator';
-import { Role } from '@prisma/client';
+import { RoleProfessional } from '@prisma/client';
 
 @InputType()
 export class UpdateProfessionalInput extends PartialType(CreateProfessionalInput) {
@@ -10,6 +10,6 @@ export class UpdateProfessionalInput extends PartialType(CreateProfessionalInput
   @IsNotEmpty()
   id: number;
 
-  @Field(() => Role, { nullable: true })
-  role?: Role; 
+  @Field(() => RoleProfessional , { nullable: true })
+  role?: RoleProfessional ; 
 }

@@ -1,9 +1,10 @@
 // create-construction.input.ts
 import { InputType, Field, Int } from '@nestjs/graphql';
-import { IsNotEmpty, IsString, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsOptional, IsDecimal } from 'class-validator';
 
 @InputType()
 export class CreateConstructionInput {
+  // --- Campos de Localização e Identificação ---
   @Field(() => String)
   @IsNotEmpty({ message: 'O nome da obra não pode ser vazio.' })
   @IsString({ message: 'O nome da obra deve ser uma string.' })
@@ -29,8 +30,11 @@ export class CreateConstructionInput {
   @IsString({ message: 'O distrito da obra deve ser uma string.' })
   district: string;
 
-  @Field(() => Int)
+  // --- Relação com o Usuário ---
+  @Field(() => Int, { description: 'ID do usuário responsável pela obra.' })
   @IsNotEmpty({ message: 'O ID do usuário não pode ser vazio.' })
   @IsNumber({}, { message: 'O ID do usuário deve ser um número.' })
   userId: number;
+  
+  // O campo 'progress' é omitido por ser gerado no service.
 }

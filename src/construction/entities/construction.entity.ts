@@ -1,6 +1,6 @@
-import { Field, Int, ObjectType } from '@nestjs/graphql';
+import { Field, Int, ObjectType, Float } from '@nestjs/graphql';
 import { Team } from 'src/team/entities/team.entity'; 
-import { Stage } from 'src/stage/entities/stage.entity'; 
+import { Phase } from 'src/phase/entities/phase.entity'; // ✨ Mudança: Importa Phase (o novo nível)
 import { User } from 'src/users/entities/user.entity';
 import { GraphQLDateTime } from 'graphql-scalars';
 
@@ -12,6 +12,7 @@ export class Construction {
   @Field()
   name: string;
 
+  // --- Campos de Localização ---
   @Field()
   address: string;
 
@@ -24,6 +25,11 @@ export class Construction {
   @Field()
   district: string;
 
+  // --- Campo de Progresso (Novo) ---
+  @Field(() => Float, { description: 'Progresso total da construção, calculado pela média ponderada das Phases.' })
+  progress: number; // ✨ Novo campo para rastrear o progresso geral
+
+  // --- Relações com Usuário e Equipe ---
   @Field(() => Int) 
   userId: number;
 
@@ -33,9 +39,11 @@ export class Construction {
   @Field(() => [Team], { nullable: true }) 
   teams?: Team[];
 
-  @Field(() => [Stage], { nullable: true }) 
-  stages?: Stage[];
+  // --- Relação com as Fases ---
+  @Field(() => [Phase], { nullable: true }) // ✨ Relação alterada: Agora se relaciona com Phase
+  phases?: Phase[];
 
+  // --- Metadados ---
   @Field(() => GraphQLDateTime)
   createdAt: Date;
 
