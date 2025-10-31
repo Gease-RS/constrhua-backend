@@ -12,32 +12,82 @@ export class PhaseService {
   // 1. CRIAÇÃO (Onde entra a lógica do modelo/template)
   //--------------------------------------------------------------------------------------
 
-  /**
-   * Cria uma nova fase. Se a construção estiver usando um modelo,
-   * a fase é copiada do modelo base (Construction ID 1).
-   */
+   async createNewPhaseFromTemplate(constructionId: number) {
+    // 1️⃣ Busca a construção modelo base (por exemplo, id=1)
+    const templateConstructionId = 1; // ou defina dinamicamente
+
+    // 2️⃣ Cria uma nova fase vinculada à construção informada
+    const newPhase = await this.prisma.phase.create({
+      data: {
+        name: 'Nova Fase',
+        progress: 0.0,
+        constructionId,
+      },
+    });
+
+    // 3️⃣ Copia estrutura da construção modelo para a nova fase
+    await this.copyTemplateStructure(
+      newPhase.id,
+      constructionId,
+      templateConstructionId,
+    );
+
+    return {
+      message: 'Fase criada com sucesso!',
+      phaseId: newPhase.id,
+    };
+  }
+
+    private async copyTemplateStructure(
+    newPhaseId: number,
+    newConstructionId: number,
+    templateConstructionId: number,
+  ) {
+    const templateStages = await this.prisma.stage.findMany({
+      where: { phase: { constructionId: templateConstructionId } },
+      include: { tasks: true },
+    });
+
+    for (const templateStage of templateStages) {
+      const newStage = await this.prisma.stage.create({
+        data: {
+          name: templateStage.name,
+          phaseId: newPhaseId,
+          isSkipped: false,
+          progress: 0.0,
+        },
+      });
+
+      for (const templateTask of templateStage.tasks) {
+        await this.prisma.task.create({
+          data: {
+            name: templateTask.name,
+            stageId: newStage.id,
+            budgetedCost: templateTask.budgetedCost ?? 0,
+            status: 'NOT_STARTED',
+          },
+        });
+      }
+    }
+  }
+
   async create(createPhaseInput: CreatePhaseInput) {
     const { name, constructionId } = createPhaseInput;
 
-    // 1. Cria a nova Phase (Fase) no banco de dados
+    // 1️⃣ Cria a nova Phase
     const newPhase = await this.prisma.phase.create({
       data: {
         name,
         constructionId,
-        progress: 0.0, // Sempre começa em 0
+        progress: 0.0,
       },
     });
 
-    // 2. Verifica se deve copiar a estrutura de um modelo base (Ex: ID 1)
-    //    Assumindo que o ID 1 representa a 'Construction Modelo Padrão'
+    // 2️⃣ Verifica se deve copiar estrutura do modelo base
     const MODEL_ID = 1;
-
-    // Se for a primeira Phase da Construction, podemos inferir que é uma cópia de modelo.
-    // Você pode ter um campo "isTemplate" na Construction para ser mais explícito.
     const isModelCopy = await this.shouldCopyFromTemplate(constructionId);
 
     if (isModelCopy) {
-      // Chama a função de cópia profunda para replicar Stages e Tasks do modelo base
       await this.copyTemplateStructure(newPhase.id, newPhase.constructionId, MODEL_ID);
     }
 
@@ -58,42 +108,43 @@ export class PhaseService {
     return true; // Simplificado: sempre copia do modelo
   }
 
+  /*
   private async copyTemplateStructure(
-    newPhaseId: number,
-    newConstructionId: number,
-    templateConstructionId: number
-  ) {
-    // 1. Busca as Stages e Tasks do modelo base
-    const templateStages = await this.prisma.stage.findMany({
-      where: { phase: { constructionId: templateConstructionId } },
-      include: { tasks: true },
+  newPhaseId: number,
+  newConstructionId: number,
+  templateConstructionId: number
+) {
+  // 1. Busca as stages e tasks do modelo base
+  const templateStages = await this.prisma.stage.findMany({
+    where: { phase: { constructionId: templateConstructionId } },
+    include: { tasks: true },
+  });
+
+  // 2. Replica a estrutura de forma independente (sem afetar progress)
+  for (const templateStage of templateStages) {
+    const newStage = await this.prisma.stage.create({
+      data: {
+        name: templateStage.name,
+        phaseId: newPhaseId,
+        isSkipped: false,         // nova etapa nunca é pulada
+        progress: 0.0,            // sempre inicia zerada
+      },
     });
 
-    // 2. Itera e replica a estrutura (Deep Copy)
-    for (const templateStage of templateStages) {
-      const newStage = await this.prisma.stage.create({
+    // 3. Replica as tarefas da stage modelo
+    for (const templateTask of templateStage.tasks) {
+      await this.prisma.task.create({
         data: {
-          name: templateStage.name,
-          phaseId: newPhaseId,
-          isSkipped: false, // Nova etapa nunca é pulada por padrão
-          progress: 0.0,
-        }
+          name: templateTask.name,
+          stageId: newStage.id,
+          budgetedCost: templateTask.budgetedCost ?? 0,  // copia custo orçado
+          status: TaskStatus.NOT_STARTED,                // sempre reinicia status
+        },
       });
-
-      // 3. Replica as Tasks para a nova Stage
-      for (const templateTask of templateStage.tasks) {
-        await this.prisma.task.create({
-          data: {
-            name: templateTask.name,
-            stageId: newStage.id,
-            budgetedCost: templateTask.budgetedCost, // Copia o CUSTO ORÇADO do modelo
-            status: TaskStatus.NOT_STARTED, // Reinicia o status
-          }
-        });
-      }
     }
   }
-
+}
+*/
 
   //--------------------------------------------------------------------------------------
   // 3. CRUD BÁSICO
@@ -101,7 +152,21 @@ export class PhaseService {
 
   // phase.service.ts (Exemplo do findAll)
 
-  async findAll(constructionId: number): Promise<Phase[]> {
+  async findAll() {
+    return this.prisma.phase.findMany({
+      include: { stages: true },
+    });
+  }
+
+  async findByConstruction(constructionId: number) {
+    return this.prisma.phase.findMany({
+      where: { constructionId },
+      include: { stages: true },
+    });
+  }
+
+
+   async findAllG(constructionId: number): Promise<Phase[]> {
     // Retorna o tipo complexo do Prisma, mas usamos 'as any' 
     // ou 'as Phase[]' para satisfazer o TypeScript no resolver.
     return this.prisma.phase.findMany({
@@ -109,7 +174,7 @@ export class PhaseService {
       include: { stages: { include: { tasks: true } } },
     }) as any; // ✨ APLICAÇÃO DO TYPE CASTING
   }
-
+  
   async findOne(id: number) {
     return this.prisma.phase.findUnique({
       where: { id }
@@ -141,3 +206,4 @@ export class PhaseService {
     }
   }
 }
+

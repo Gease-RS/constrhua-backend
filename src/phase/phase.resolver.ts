@@ -55,7 +55,7 @@ export class PhaseResolver {
     @Args('constructionId', { type: () => Int, description: 'ID da construção para filtrar as fases.' }) constructionId: number,
   ): Promise<Phase[]> {
     // Chama o serviço para buscar as fases de uma construção específica
-    return this.phaseService.findAll(constructionId);
+    return this.phaseService.findByConstruction(constructionId);
   }
 
   @Query(() => Phase, { name: 'phase', description: 'Retorna uma fase pelo seu ID, incluindo etapas e tarefas.' })
